@@ -4,7 +4,6 @@ import re
 import os
 from urllib.parse import unquote_plus
 from datetime import datetime, timezone
-from decimal import Decimal
 
 s3 = boto3.client("s3")
 dynamodb = boto3.resource("dynamodb")
@@ -39,14 +38,32 @@ def lambda_handler(event, context):
             detected_issue = "IIS configuration error"
             incident_type = "iis"
             severity = "error"
+            confidence_score = "0.95"
+            recommended_action = (
+                "Verify web.config permissions, "
+                "application pool identity access, "
+                "and IIS configuration validity."
+            )
+
         elif "terminated unexpectedly" in log_lower:
             detected_issue = "Windows service terminated unexpectedly"
             incident_type = "windows_service"
             severity = "error"
+            confidence_score = "0.95"
+            recommended_action = (
+                "Check service logs, recent deployments, "
+                "service account permissions, "
+                "and dependency failures."
+            )
+
         else:
             detected_issue = "unknown"
             incident_type = "unknown"
             severity = "info"
+            confidence_score = "0.20"
+            recommended_action = (
+                "Review the raw log manually for further investigation."
+            )
         item = {
             "log_id": key.replace("/", "_").replace(".txt", ""),
             "source_bucket": bucket,
@@ -55,6 +72,8 @@ def lambda_handler(event, context):
             "service": detected_service,
             "issue": detected_issue,
             "severity": severity,
+            "recommended_action": recommended_action,
+            "confidence_score": confidence_score,
             "processed_at": datetime.now(timezone.utc).isoformat(),
             "log_preview": log_text[:500],
             "source": detected_source,
