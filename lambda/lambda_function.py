@@ -39,6 +39,7 @@ def lambda_handler(event, context):
             incident_type = "iis"
             severity = "error"
             confidence_score = "0.95"
+            alert_required = "yes"
             recommended_action = (
                 "Verify web.config permissions, "
                 "application pool identity access, "
@@ -50,6 +51,7 @@ def lambda_handler(event, context):
             incident_type = "windows_service"
             severity = "error"
             confidence_score = "0.95"
+            alert_required = "yes"
             recommended_action = (
                 "Check service logs, recent deployments, "
                 "service account permissions, "
@@ -61,9 +63,17 @@ def lambda_handler(event, context):
             incident_type = "unknown"
             severity = "info"
             confidence_score = "0.20"
+            alert_required = "no"
             recommended_action = (
                 "Review the raw log manually for further investigation."
             )
+
+        if severity == "error" and alert_required == "yes" and float(confidence_score) >= 0.90:
+            remediation_priority = "high"
+        elif severity == "error":
+            remediation_priority = "medium"
+        else:
+            remediation_priority = "low"
         item = {
             "log_id": key.replace("/", "_").replace(".txt", ""),
             "source_bucket": bucket,
@@ -74,6 +84,8 @@ def lambda_handler(event, context):
             "severity": severity,
             "recommended_action": recommended_action,
             "confidence_score": confidence_score,
+            "alert_required": alert_required,
+            "remediation_priority": remediation_priority,
             "processed_at": datetime.now(timezone.utc).isoformat(),
             "log_preview": log_text[:500],
             "source": detected_source,
