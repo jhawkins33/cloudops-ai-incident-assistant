@@ -74,6 +74,9 @@ def lambda_handler(event, context):
             remediation_priority = "medium"
         else:
             remediation_priority = "low"
+
+        status = "new"
+
         item = {
             "log_id": key.replace("/", "_").replace(".txt", ""),
             "source_bucket": bucket,
@@ -86,6 +89,7 @@ def lambda_handler(event, context):
             "confidence_score": confidence_score,
             "alert_required": alert_required,
             "remediation_priority": remediation_priority,
+            "status": status,
             "processed_at": datetime.now(timezone.utc).isoformat(),
             "log_preview": log_text[:500],
             "source": detected_source,
