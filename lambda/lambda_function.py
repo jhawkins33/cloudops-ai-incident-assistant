@@ -37,6 +37,7 @@ def lambda_handler(event, context):
         if "500.19" in log_text or "http error 500.19" in log_lower:
             detected_issue = "IIS configuration error"
             incident_type = "iis"
+            incident_category = "application"
             severity = "error"
             confidence_score = "0.95"
             alert_required = "yes"
@@ -49,6 +50,7 @@ def lambda_handler(event, context):
         elif "terminated unexpectedly" in log_lower:
             detected_issue = "Windows service terminated unexpectedly"
             incident_type = "windows_service"
+            incident_category = "infrastructure"
             severity = "error"
             confidence_score = "0.95"
             alert_required = "yes"
@@ -61,6 +63,7 @@ def lambda_handler(event, context):
         else:
             detected_issue = "unknown"
             incident_type = "unknown"
+            incident_category = "unknown"
             severity = "info"
             confidence_score = "0.20"
             alert_required = "no"
@@ -94,6 +97,7 @@ def lambda_handler(event, context):
             "log_preview": log_text[:500],
             "source": detected_source,
             "incident_type": incident_type,
+            "incident_category": incident_category,
         }
 
         table.put_item(Item=item)
