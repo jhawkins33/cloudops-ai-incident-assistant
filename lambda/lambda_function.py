@@ -41,6 +41,7 @@ def lambda_handler(event, context):
             severity = "error"
             confidence_score = "0.95"
             alert_required = "yes"
+            resolution_recommendation = "Review IIS configuration and permissions"
             recommended_action = (
                 "Verify web.config permissions, "
                 "application pool identity access, "
@@ -54,6 +55,7 @@ def lambda_handler(event, context):
             severity = "error"
             confidence_score = "0.95"
             alert_required = "yes"
+            resolution_recommendation = "Investigate service stability and restart conditions"
             recommended_action = (
                 "Check service logs, recent deployments, "
                 "service account permissions, "
@@ -67,6 +69,7 @@ def lambda_handler(event, context):
             severity = "info"
             confidence_score = "0.20"
             alert_required = "no"
+            resolution_recommendation = "Manual analysis required"
             recommended_action = (
                 "Review the raw log manually for further investigation."
             )
@@ -89,6 +92,7 @@ def lambda_handler(event, context):
             "issue": detected_issue,
             "severity": severity,
             "recommended_action": recommended_action,
+            "resolution_recommendation": resolution_recommendation,
             "confidence_score": confidence_score,
             "alert_required": alert_required,
             "remediation_priority": remediation_priority,
