@@ -85,6 +85,7 @@ def lambda_handler(event, context):
             remediation_priority = "low"
 
         status = "new"
+        incident_detected_at = datetime.now(timezone.utc).isoformat()
 
         item = {
             "log_id": key.replace("/", "_").replace(".txt", ""),
@@ -101,6 +102,7 @@ def lambda_handler(event, context):
             "remediation_priority": remediation_priority,
             "status": status,
             "processed_at": datetime.now(timezone.utc).isoformat(),
+            "incident_detected_at": incident_detected_at,
             "log_preview": log_text[:500],
             "source": detected_source,
             "incident_type": incident_type,
