@@ -41,6 +41,7 @@ def lambda_handler(event, context):
             severity = "error"
             confidence_score = "0.95"
             alert_required = "yes"
+            assigned_team = "web_operations"
             resolution_recommendation = "Review IIS configuration and permissions"
             recommended_action = (
                 "Verify web.config permissions, "
@@ -55,6 +56,7 @@ def lambda_handler(event, context):
             severity = "error"
             confidence_score = "0.95"
             alert_required = "yes"
+            assigned_team = "infrastructure_operations"
             resolution_recommendation = "Investigate service stability and restart conditions"
             recommended_action = (
                 "Check service logs, recent deployments, "
@@ -69,6 +71,7 @@ def lambda_handler(event, context):
             severity = "info"
             confidence_score = "0.20"
             alert_required = "no"
+            assigned_team = "triage"
             resolution_recommendation = "Manual analysis required"
             recommended_action = (
                 "Review the raw log manually for further investigation."
@@ -102,8 +105,10 @@ def lambda_handler(event, context):
             "source": detected_source,
             "incident_type": incident_type,
             "incident_category": incident_category,
+            "assigned_team": assigned_team,
         }
 
+        print(f"DEBUG assigned_team: {assigned_team}")
         table.put_item(Item=item)
 
         print("Saved finding to DynamoDB:")
