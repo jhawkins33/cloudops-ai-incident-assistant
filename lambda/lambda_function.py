@@ -42,6 +42,7 @@ def lambda_handler(event, context):
             confidence_score = "0.95"
             alert_required = "yes"
             assigned_team = "web_operations"
+            incident_source_system = "windows_iis"
             resolution_recommendation = "Review IIS configuration and permissions"
             recommended_action = (
                 "Verify web.config permissions, "
@@ -57,6 +58,7 @@ def lambda_handler(event, context):
             confidence_score = "0.95"
             alert_required = "yes"
             assigned_team = "infrastructure_operations"
+            incident_source_system = "windows_os"
             resolution_recommendation = "Investigate service stability and restart conditions"
             recommended_action = (
                 "Check service logs, recent deployments, "
@@ -72,6 +74,7 @@ def lambda_handler(event, context):
             confidence_score = "0.20"
             alert_required = "no"
             assigned_team = "triage"
+            incident_source_system = "unknown"
             resolution_recommendation = "Manual analysis required"
             recommended_action = (
                 "Review the raw log manually for further investigation."
@@ -108,6 +111,7 @@ def lambda_handler(event, context):
             "incident_type": incident_type,
             "incident_category": incident_category,
             "assigned_team": assigned_team,
+            "incident_source_system": incident_source_system,
         }
 
         print(f"DEBUG assigned_team: {assigned_team}")
