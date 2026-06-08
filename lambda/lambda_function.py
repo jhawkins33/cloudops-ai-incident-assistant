@@ -43,6 +43,7 @@ def lambda_handler(event, context):
             alert_required = "yes"
             assigned_team = "web_operations"
             incident_source_system = "windows_iis"
+            incident_summary = "IIS configuration error detected"
             resolution_recommendation = "Review IIS configuration and permissions"
             recommended_action = (
                 "Verify web.config permissions, "
@@ -59,6 +60,7 @@ def lambda_handler(event, context):
             alert_required = "yes"
             assigned_team = "infrastructure_operations"
             incident_source_system = "windows_os"
+            incident_summary = f"Service {detected_service} terminated unexpectedly"
             resolution_recommendation = "Investigate service stability and restart conditions"
             recommended_action = (
                 "Check service logs, recent deployments, "
@@ -75,6 +77,7 @@ def lambda_handler(event, context):
             alert_required = "no"
             assigned_team = "triage"
             incident_source_system = "unknown"
+            incident_summary = "Unknown incident detected"
             resolution_recommendation = "Manual analysis required"
             recommended_action = (
                 "Review the raw log manually for further investigation."
@@ -112,6 +115,7 @@ def lambda_handler(event, context):
             "incident_category": incident_category,
             "assigned_team": assigned_team,
             "incident_source_system": incident_source_system,
+            "incident_summary": incident_summary,
         }
 
         print(f"DEBUG assigned_team: {assigned_team}")
