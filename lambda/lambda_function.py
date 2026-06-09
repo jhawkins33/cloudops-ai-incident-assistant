@@ -44,6 +44,8 @@ def lambda_handler(event, context):
             assigned_team = "web_operations"
             incident_source_system = "windows_iis"
             incident_summary = "IIS configuration error detected"
+            status_reason = "Awaiting investigation by web operations team"
+            business_impact = "Customer-facing application may be unavailable"
             resolution_recommendation = "Review IIS configuration and permissions"
             recommended_action = (
                 "Verify web.config permissions, "
@@ -61,6 +63,8 @@ def lambda_handler(event, context):
             assigned_team = "infrastructure_operations"
             incident_source_system = "windows_os"
             incident_summary = f"Service {detected_service} terminated unexpectedly"
+            status_reason = "Awaiting investigation by infrastructure operations team"
+            business_impact = "Infrastructure service interruption may affect application operations"
             resolution_recommendation = "Investigate service stability and restart conditions"
             recommended_action = (
                 "Check service logs, recent deployments, "
@@ -78,6 +82,8 @@ def lambda_handler(event, context):
             assigned_team = "triage"
             incident_source_system = "unknown"
             incident_summary = "Unknown incident detected"
+            status_reason = "Awaiting triage and classification"
+            business_impact = "Business impact currently unknown"
             resolution_recommendation = "Manual analysis required"
             recommended_action = (
                 "Review the raw log manually for further investigation."
@@ -107,6 +113,8 @@ def lambda_handler(event, context):
             "alert_required": alert_required,
             "remediation_priority": remediation_priority,
             "status": status,
+            "status_reason": status_reason,
+            "business_impact": business_impact,
             "processed_at": datetime.now(timezone.utc).isoformat(),
             "incident_detected_at": incident_detected_at,
             "log_preview": log_text[:500],
