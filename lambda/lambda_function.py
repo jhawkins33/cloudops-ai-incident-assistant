@@ -47,6 +47,13 @@ def lambda_handler(event, context):
             status_reason = "Awaiting investigation by web operations team"
             business_impact = "Customer-facing application may be unavailable"
             resolution_recommendation = "Review IIS configuration and permissions"
+            incident_tags = [
+                "iis",
+                "application",
+                "web",
+                "configuration",
+                "high_priority"
+            ]
             recommended_action = (
                 "Verify web.config permissions, "
                 "application pool identity access, "
@@ -65,6 +72,13 @@ def lambda_handler(event, context):
             incident_summary = f"Service {detected_service} terminated unexpectedly"
             status_reason = "Awaiting investigation by infrastructure operations team"
             business_impact = "Infrastructure service interruption may affect application operations"
+            incident_tags = [
+                "windows",
+                "service",
+                "infrastructure",
+                "7031",
+                "high_priority"
+           ]
             resolution_recommendation = "Investigate service stability and restart conditions"
             recommended_action = (
                 "Check service logs, recent deployments, "
@@ -84,6 +98,10 @@ def lambda_handler(event, context):
             incident_summary = "Unknown incident detected"
             status_reason = "Awaiting triage and classification"
             business_impact = "Business impact currently unknown"
+            incident_tags = [
+                "unknown",
+                "triage"
+            ]
             resolution_recommendation = "Manual analysis required"
             recommended_action = (
                 "Review the raw log manually for further investigation."
@@ -115,6 +133,7 @@ def lambda_handler(event, context):
             "status": status,
             "status_reason": status_reason,
             "business_impact": business_impact,
+            "incident_tags": incident_tags,
             "processed_at": datetime.now(timezone.utc).isoformat(),
             "incident_detected_at": incident_detected_at,
             "log_preview": log_text[:500],
