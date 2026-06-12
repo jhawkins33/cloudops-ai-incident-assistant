@@ -47,6 +47,7 @@ def lambda_handler(event, context):
             status_reason = "Awaiting investigation by web operations team"
             business_impact = "Customer-facing application may be unavailable"
             resolution_recommendation = "Review IIS configuration and permissions"
+            estimated_resolution_time = "30 minutes"
             incident_tags = [
                 "iis",
                 "application",
@@ -80,6 +81,7 @@ def lambda_handler(event, context):
                 "high_priority"
            ]
             resolution_recommendation = "Investigate service stability and restart conditions"
+            estimated_resolution_time = "15 minutes"
             recommended_action = (
                 "Check service logs, recent deployments, "
                 "service account permissions, "
@@ -103,6 +105,7 @@ def lambda_handler(event, context):
                 "triage"
             ]
             resolution_recommendation = "Manual analysis required"
+            estimated_resolution_time = "To be determined"
             recommended_action = (
                 "Review the raw log manually for further investigation."
             )
@@ -132,6 +135,7 @@ def lambda_handler(event, context):
             "remediation_priority": remediation_priority,
             "status": status,
             "status_reason": status_reason,
+            "estimated_resolution_time": estimated_resolution_time,
             "business_impact": business_impact,
             "incident_tags": incident_tags,
             "processed_at": datetime.now(timezone.utc).isoformat(),
