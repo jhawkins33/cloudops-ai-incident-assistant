@@ -112,10 +112,13 @@ def lambda_handler(event, context):
 
         if severity == "error" and alert_required == "yes" and float(confidence_score) >= 0.90:
             remediation_priority = "high"
+            incident_score = 95
         elif severity == "error":
             remediation_priority = "medium"
+            incident_score = 70
         else:
             remediation_priority = "low"
+            incident_score = 30
 
         status = "new"
         incident_detected_at = datetime.now(timezone.utc).isoformat()
@@ -131,6 +134,7 @@ def lambda_handler(event, context):
             "recommended_action": recommended_action,
             "resolution_recommendation": resolution_recommendation,
             "confidence_score": confidence_score,
+            "incident_score": incident_score,
             "alert_required": alert_required,
             "remediation_priority": remediation_priority,
             "status": status,
@@ -148,8 +152,6 @@ def lambda_handler(event, context):
             "incident_source_system": incident_source_system,
             "incident_summary": incident_summary,
         }
-
-        print(f"DEBUG assigned_team: {assigned_team}")
         table.put_item(Item=item)
 
         print("Saved finding to DynamoDB:")
