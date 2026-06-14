@@ -41,6 +41,7 @@ def lambda_handler(event, context):
             severity = "error"
             confidence_score = "0.95"
             alert_required = "yes"
+            repeat_incident = "no"
             assigned_team = "web_operations"
             incident_source_system = "windows_iis"
             incident_summary = "IIS configuration error detected"
@@ -68,6 +69,7 @@ def lambda_handler(event, context):
             severity = "error"
             confidence_score = "0.95"
             alert_required = "yes"
+            repeat_incident = "no"
             assigned_team = "infrastructure_operations"
             incident_source_system = "windows_os"
             incident_summary = f"Service {detected_service} terminated unexpectedly"
@@ -95,6 +97,7 @@ def lambda_handler(event, context):
             severity = "info"
             confidence_score = "0.20"
             alert_required = "no"
+            repeat_incident = "unknown"
             assigned_team = "triage"
             incident_source_system = "unknown"
             incident_summary = "Unknown incident detected"
@@ -135,6 +138,7 @@ def lambda_handler(event, context):
             "resolution_recommendation": resolution_recommendation,
             "confidence_score": confidence_score,
             "incident_score": incident_score,
+            "repeat_incident": repeat_incident,
             "alert_required": alert_required,
             "remediation_priority": remediation_priority,
             "status": status,
