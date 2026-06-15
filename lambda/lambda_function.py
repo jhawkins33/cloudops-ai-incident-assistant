@@ -41,7 +41,6 @@ def lambda_handler(event, context):
             severity = "error"
             confidence_score = "0.95"
             alert_required = "yes"
-            repeat_incident = "no"
             assigned_team = "web_operations"
             incident_source_system = "windows_iis"
             incident_summary = "IIS configuration error detected"
@@ -69,7 +68,6 @@ def lambda_handler(event, context):
             severity = "error"
             confidence_score = "0.95"
             alert_required = "yes"
-            repeat_incident = "no"
             assigned_team = "infrastructure_operations"
             incident_source_system = "windows_os"
             incident_summary = f"Service {detected_service} terminated unexpectedly"
@@ -81,7 +79,7 @@ def lambda_handler(event, context):
                 "infrastructure",
                 "7031",
                 "high_priority"
-            ]
+           ]
             resolution_recommendation = "Investigate service stability and restart conditions"
             estimated_resolution_time = "15 minutes"
             recommended_action = (
@@ -122,21 +120,20 @@ def lambda_handler(event, context):
         else:
             remediation_priority = "low"
             incident_score = 30
-
-        if incident_score >= 90:
-            escalation_level = "critical"
-
-        elif incident_score >= 70:
-            escalation_level = "high"
-
-        elif incident_score >= 40:
-            escalation_level = "medium"
-
-        else:
-            escalation_level = "low"
-
         status = "new"
         incident_detected_at = datetime.now(timezone.utc).isoformat()
+
+        repeat_incident = "no"
+
+        response = table.scan()
+
+        for existing_item in response.get("Items", []):
+            if (
+                existing_item.get("service") == detected_service
+                and existing_item.get("incident_type") == incident_type
+            ):
+                repeat_incident = "yes"
+                break
 
         item = {
             "log_id": key.replace("/", "_").replace(".txt", ""),
@@ -150,7 +147,6 @@ def lambda_handler(event, context):
             "resolution_recommendation": resolution_recommendation,
             "confidence_score": confidence_score,
             "incident_score": incident_score,
-            "escalation_level": escalation_level,
             "repeat_incident": repeat_incident,
             "alert_required": alert_required,
             "remediation_priority": remediation_priority,
@@ -169,13 +165,8 @@ def lambda_handler(event, context):
             "incident_source_system": incident_source_system,
             "incident_summary": incident_summary,
         }
+
         table.put_item(Item=item)
 
         print("Saved finding to DynamoDB:")
         print(json.dumps(item, indent=2))
-
-    return {
-        "statusCode": 200,
-        "body": json.dumps("Processed log file and saved finding")
-    }
-
