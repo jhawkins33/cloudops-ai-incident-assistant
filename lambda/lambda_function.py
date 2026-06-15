@@ -124,16 +124,17 @@ def lambda_handler(event, context):
         incident_detected_at = datetime.now(timezone.utc).isoformat()
 
         repeat_incident = "no"
+        incident_occurrence = 1
 
         response = table.scan()
 
         for existing_item in response.get("Items", []):
             if (
-                existing_item.get("service") == detected_service
-                and existing_item.get("incident_type") == incident_type
-            ):
-                repeat_incident = "yes"
-                break
+        existing_item.get("service") == detected_service
+        and existing_item.get("incident_type") == incident_type
+             ):
+             repeat_incident = "yes"
+             incident_occurrence += 1
 
         item = {
             "log_id": key.replace("/", "_").replace(".txt", ""),
@@ -148,6 +149,7 @@ def lambda_handler(event, context):
             "confidence_score": confidence_score,
             "incident_score": incident_score,
             "repeat_incident": repeat_incident,
+            "incident_occurrence": incident_occurrence,
             "alert_required": alert_required,
             "remediation_priority": remediation_priority,
             "status": status,
