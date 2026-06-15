@@ -81,7 +81,7 @@ def lambda_handler(event, context):
                 "infrastructure",
                 "7031",
                 "high_priority"
-           ]
+            ]
             resolution_recommendation = "Investigate service stability and restart conditions"
             estimated_resolution_time = "15 minutes"
             recommended_action = (
@@ -123,6 +123,18 @@ def lambda_handler(event, context):
             remediation_priority = "low"
             incident_score = 30
 
+        if incident_score >= 90:
+            escalation_level = "critical"
+
+        elif incident_score >= 70:
+            escalation_level = "high"
+
+        elif incident_score >= 40:
+            escalation_level = "medium"
+
+        else:
+            escalation_level = "low"
+
         status = "new"
         incident_detected_at = datetime.now(timezone.utc).isoformat()
 
@@ -138,6 +150,7 @@ def lambda_handler(event, context):
             "resolution_recommendation": resolution_recommendation,
             "confidence_score": confidence_score,
             "incident_score": incident_score,
+            "escalation_level": escalation_level,
             "repeat_incident": repeat_incident,
             "alert_required": alert_required,
             "remediation_priority": remediation_priority,

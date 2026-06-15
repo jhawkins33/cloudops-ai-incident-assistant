@@ -1,0 +1,6 @@
+Event ID: 7031
+Source: Service Control Manager
+Service: buildagent
+The buildagent service terminated unexpectedly.
+It has done this 3 time(s).
+The following corrective action will be taken in 60000 milliseconds: Restart the service.
