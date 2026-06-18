@@ -136,6 +136,33 @@ def lambda_handler(event, context):
              repeat_incident = "yes"
              incident_occurrence += 1
 
+        if incident_occurrence >= 20:
+            incident_trend = "chronic"
+
+            # Increase score for recurring problems
+
+        if incident_trend == "recurring":
+            incident_score += 2
+
+        elif incident_trend == "frequent":
+            incident_score += 5
+
+        elif incident_trend == "chronic":
+            incident_score += 10
+
+         # Never exceed 100
+
+            incident_score = min(incident_score, 100)
+
+        elif incident_occurrence >= 10:
+            incident_trend = "frequent"
+
+        elif incident_occurrence >= 2:
+             incident_trend = "recurring"
+
+        else:
+            incident_trend = "new"
+
         item = {
             "log_id": key.replace("/", "_").replace(".txt", ""),
             "source_bucket": bucket,
@@ -150,6 +177,7 @@ def lambda_handler(event, context):
             "incident_score": incident_score,
             "repeat_incident": repeat_incident,
             "incident_occurrence": incident_occurrence,
+            "incident_trend": incident_trend,
             "alert_required": alert_required,
             "remediation_priority": remediation_priority,
             "status": status,
