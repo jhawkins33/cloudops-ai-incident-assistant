@@ -11,6 +11,7 @@ dynamodb = boto3.resource("dynamodb")
 TABLE_NAME = os.environ.get("TABLE_NAME", "incident-findings")
 table = dynamodb.Table(TABLE_NAME)
 
+
 def lambda_handler(event, context):
     print("Received event:")
     print(json.dumps(event))
@@ -73,15 +74,15 @@ def lambda_handler(event, context):
             incident_summary = f"Service {detected_service} terminated unexpectedly"
             status_reason = "Awaiting investigation by infrastructure operations team"
             business_impact = "Infrastructure service interruption may affect application operations"
+            resolution_recommendation = "Investigate service stability and restart conditions"
+            estimated_resolution_time = "15 minutes"
             incident_tags = [
                 "windows",
                 "service",
                 "infrastructure",
                 "7031",
                 "high_priority"
-           ]
-            resolution_recommendation = "Investigate service stability and restart conditions"
-            estimated_resolution_time = "15 minutes"
+            ]
             recommended_action = (
                 "Check service logs, recent deployments, "
                 "service account permissions, "
@@ -95,21 +96,15 @@ def lambda_handler(event, context):
             severity = "info"
             confidence_score = "0.20"
             alert_required = "no"
-            repeat_incident = "unknown"
             assigned_team = "triage"
             incident_source_system = "unknown"
             incident_summary = "Unknown incident detected"
             status_reason = "Awaiting triage and classification"
             business_impact = "Business impact currently unknown"
-            incident_tags = [
-                "unknown",
-                "triage"
-            ]
             resolution_recommendation = "Manual analysis required"
             estimated_resolution_time = "To be determined"
-            recommended_action = (
-                "Review the raw log manually for further investigation."
-            )
+            incident_tags = ["unknown", "triage"]
+            recommended_action = "Review the raw log manually for further investigation."
 
         if severity == "error" and alert_required == "yes" and float(confidence_score) >= 0.90:
             remediation_priority = "high"
@@ -120,6 +115,7 @@ def lambda_handler(event, context):
         else:
             remediation_priority = "low"
             incident_score = 30
+
         status = "new"
         incident_detected_at = datetime.now(timezone.utc).isoformat()
 
@@ -130,38 +126,43 @@ def lambda_handler(event, context):
 
         for existing_item in response.get("Items", []):
             if (
-        existing_item.get("service") == detected_service
-        and existing_item.get("incident_type") == incident_type
-             ):
-             repeat_incident = "yes"
-             incident_occurrence += 1
+                existing_item.get("service") == detected_service
+                and existing_item.get("incident_type") == incident_type
+            ):
+                repeat_incident = "yes"
+                incident_occurrence += 1
 
         if incident_occurrence >= 20:
             incident_trend = "chronic"
-
-            # Increase score for recurring problems
+        elif incident_occurrence >= 10:
+            incident_trend = "frequent"
+        elif incident_occurrence >= 2:
+            incident_trend = "recurring"
+        else:
+            incident_trend = "new"
 
         if incident_trend == "recurring":
             incident_score += 2
-
         elif incident_trend == "frequent":
             incident_score += 5
-
         elif incident_trend == "chronic":
             incident_score += 10
 
-         # Never exceed 100
+        incident_score = min(incident_score, 100)
 
-            incident_score = min(incident_score, 100)
-
-        elif incident_occurrence >= 10:
-            incident_trend = "frequent"
-
-        elif incident_occurrence >= 2:
-             incident_trend = "recurring"
-
+        if incident_score >= 90:
+            escalation_level = "critical"
+        elif incident_score >= 70:
+            escalation_level = "high"
+        elif incident_score >= 40:
+            escalation_level = "medium"
         else:
-            incident_trend = "new"
+            escalation_level = "low"
+
+        if escalation_level == "critical" or incident_trend == "chronic":
+            requires_escalation = "yes"
+        else:
+            requires_escalation = "no"
 
         item = {
             "log_id": key.replace("/", "_").replace(".txt", ""),
@@ -175,6 +176,8 @@ def lambda_handler(event, context):
             "resolution_recommendation": resolution_recommendation,
             "confidence_score": confidence_score,
             "incident_score": incident_score,
+            "escalation_level": escalation_level,
+            "requires_escalation": requires_escalation,
             "repeat_incident": repeat_incident,
             "incident_occurrence": incident_occurrence,
             "incident_trend": incident_trend,
@@ -200,3 +203,8 @@ def lambda_handler(event, context):
 
         print("Saved finding to DynamoDB:")
         print(json.dumps(item, indent=2))
+
+    return {
+        "statusCode": 200,
+        "body": json.dumps("Processed log file and saved finding")
+    }
