@@ -164,6 +164,18 @@ def lambda_handler(event, context):
         else:
             requires_escalation = "no"
 
+        if  incident_score >= 90:
+            incident_priority = "P1"
+
+        elif incident_score >= 70:
+            incident_priority = "P2"
+
+        elif incident_score >= 40:
+            incident_priority = "P3"
+
+        else:
+            incident_priority = "P4"
+
         item = {
             "log_id": key.replace("/", "_").replace(".txt", ""),
             "source_bucket": bucket,
@@ -176,6 +188,7 @@ def lambda_handler(event, context):
             "resolution_recommendation": resolution_recommendation,
             "confidence_score": confidence_score,
             "incident_score": incident_score,
+            "incident_priority": incident_priority,
             "escalation_level": escalation_level,
             "requires_escalation": requires_escalation,
             "repeat_incident": repeat_incident,
