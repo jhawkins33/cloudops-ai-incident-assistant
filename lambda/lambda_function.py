@@ -176,6 +176,18 @@ def lambda_handler(event, context):
         else:
             incident_priority = "P4"
 
+        if incident_priority == "P1" and incident_trend == "chronic":
+            incident_risk = "critical"
+      
+        elif incident_priority == "P1":
+            incident_risk = "high"
+
+        elif incident_priority == "P2":
+            incident_risk = "medium"
+
+        else:
+            incident_risk = "low"
+
         item = {
             "log_id": key.replace("/", "_").replace(".txt", ""),
             "source_bucket": bucket,
@@ -189,6 +201,7 @@ def lambda_handler(event, context):
             "confidence_score": confidence_score,
             "incident_score": incident_score,
             "incident_priority": incident_priority,
+            "incident_risk": incident_risk,
             "escalation_level": escalation_level,
             "requires_escalation": requires_escalation,
             "repeat_incident": repeat_incident,
