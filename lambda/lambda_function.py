@@ -116,7 +116,6 @@ def lambda_handler(event, context):
             remediation_priority = "low"
             incident_score = 30
 
-        status = "new"
         incident_detected_at = datetime.now(timezone.utc).isoformat()
 
         repeat_incident = "no"
@@ -164,27 +163,30 @@ def lambda_handler(event, context):
         else:
             requires_escalation = "no"
 
-        if  incident_score >= 90:
+        if incident_score >= 90:
             incident_priority = "P1"
-
         elif incident_score >= 70:
             incident_priority = "P2"
-
         elif incident_score >= 40:
             incident_priority = "P3"
-
         else:
             incident_priority = "P4"
 
+        status = "new"
+
+        if incident_priority == "P1":
+            incident_lifecycle = "Immediate Response"
+        elif incident_priority == "P2":
+            incident_lifecycle = "Active Investigation"
+        else:
+            incident_lifecycle = "Monitoring"
+
         if incident_priority == "P1" and incident_trend == "chronic":
             incident_risk = "critical"
-      
         elif incident_priority == "P1":
             incident_risk = "high"
-
         elif incident_priority == "P2":
             incident_risk = "medium"
-
         else:
             incident_risk = "low"
 
@@ -211,6 +213,7 @@ def lambda_handler(event, context):
             "remediation_priority": remediation_priority,
             "status": status,
             "status_reason": status_reason,
+            "incident_lifecycle": incident_lifecycle,
             "estimated_resolution_time": estimated_resolution_time,
             "business_impact": business_impact,
             "incident_tags": incident_tags,
