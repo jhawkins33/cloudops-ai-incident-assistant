@@ -118,6 +118,8 @@ def lambda_handler(event, context):
 
         incident_detected_at = datetime.now(timezone.utc).isoformat()
 
+        incident_age_minutes = 0
+
         repeat_incident = "no"
         incident_occurrence = 1
 
@@ -219,6 +221,7 @@ def lambda_handler(event, context):
             "incident_tags": incident_tags,
             "processed_at": datetime.now(timezone.utc).isoformat(),
             "incident_detected_at": incident_detected_at,
+            "incident_age_minutes": incident_age_minutes,
             "log_preview": log_text[:500],
             "source": detected_source,
             "incident_type": incident_type,
