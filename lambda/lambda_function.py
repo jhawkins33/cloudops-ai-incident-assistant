@@ -25,6 +25,10 @@ def lambda_handler(event, context):
         response = s3.get_object(Bucket=bucket, Key=key)
         log_text = response["Body"].read().decode("utf-8")
 
+        # -----------------------------
+        # Parse log fields
+        # -----------------------------
+
         event_id_match = re.search(r"Event ID:\s*(\d+)", log_text)
         service_match = re.search(r"Service:\s*(.+)", log_text)
         source_match = re.search(r"Source:\s*(.+)", log_text)
@@ -34,6 +38,10 @@ def lambda_handler(event, context):
         detected_source = source_match.group(1).strip() if source_match else "unknown"
 
         log_lower = log_text.lower()
+
+        # -----------------------------
+        # Classify incident
+        # -----------------------------
 
         if "500.19" in log_text or "http error 500.19" in log_lower:
             detected_issue = "IIS configuration error"
@@ -106,6 +114,10 @@ def lambda_handler(event, context):
             incident_tags = ["unknown", "triage"]
             recommended_action = "Review the raw log manually for further investigation."
 
+        # -----------------------------
+        # Calculate base score
+        # -----------------------------
+
         if severity == "error" and alert_required == "yes" and float(confidence_score) >= 0.90:
             remediation_priority = "high"
             incident_score = 95
@@ -120,6 +132,10 @@ def lambda_handler(event, context):
 
         incident_age_minutes = 0
 
+        # -----------------------------
+        # Analyze incident history
+        # -----------------------------
+
         repeat_incident = "no"
         incident_occurrence = 1
 
@@ -132,6 +148,10 @@ def lambda_handler(event, context):
             ):
                 repeat_incident = "yes"
                 incident_occurrence += 1
+
+        # -----------------------------
+        # Determine trend and final score
+        # -----------------------------
 
         if incident_occurrence >= 20:
             incident_trend = "chronic"
@@ -165,6 +185,10 @@ def lambda_handler(event, context):
         else:
             requires_escalation = "no"
 
+        # -----------------------------
+        # Determine priority, lifecycle, and risk
+        # -----------------------------
+
         if incident_score >= 90:
             incident_priority = "P1"
         elif incident_score >= 70:
@@ -191,6 +215,10 @@ def lambda_handler(event, context):
             incident_risk = "medium"
         else:
             incident_risk = "low"
+
+        # -----------------------------
+        # Build and save DynamoDB item
+        # -----------------------------
 
         item = {
             "log_id": key.replace("/", "_").replace(".txt", ""),
