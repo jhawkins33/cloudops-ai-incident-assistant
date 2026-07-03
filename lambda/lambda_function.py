@@ -217,8 +217,19 @@ def lambda_handler(event, context):
             incident_risk = "low"
 
         # -----------------------------
+        # Generate executive summary
+        # -----------------------------
+
+        # -----------------------------
         # Build and save DynamoDB item
         # -----------------------------
+
+        executive_summary = (
+            f"{incident_priority} {incident_risk.upper()} incident affecting "
+            f"{detected_service}. "
+            f"This is occurrence #{incident_occurrence} "
+            f"and is classified as {incident_trend}."
+        )
 
         item = {
             "log_id": key.replace("/", "_").replace(".txt", ""),
@@ -257,6 +268,7 @@ def lambda_handler(event, context):
             "assigned_team": assigned_team,
             "incident_source_system": incident_source_system,
             "incident_summary": incident_summary,
+            "executive_summary": executive_summary, 
         }
 
         table.put_item(Item=item)
