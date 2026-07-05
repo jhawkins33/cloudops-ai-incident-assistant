@@ -217,6 +217,19 @@ def lambda_handler(event, context):
             incident_risk = "low"
 
         # -----------------------------
+        # Recommend incident status
+        # -----------------------------
+
+        if incident_priority == "P1":
+            recommended_status = "Open"
+
+        elif incident_priority == "P2":
+            recommended_status = "Investigating"
+
+        else:
+            recommended_status = "Monitoring"
+
+        # -----------------------------
         # Generate executive summary
         # -----------------------------
 
@@ -268,7 +281,8 @@ def lambda_handler(event, context):
             "assigned_team": assigned_team,
             "incident_source_system": incident_source_system,
             "incident_summary": incident_summary,
-            "executive_summary": executive_summary, 
+            "executive_summary": executive_summary,
+            "recommended_status": recommended_status, 
         }
 
         table.put_item(Item=item)
