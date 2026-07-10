@@ -1,27 +1,26 @@
-S3 Sample Log Upload
-        │
-        ▼
-S3 ObjectCreated Event
-        │
-        ▼
-AWS Lambda Incident Processor
-        │
-        ├── Parse log metadata
-        ├── Classify incident type
-        ├── Calculate incident score
-        ├── Analyze incident history
-        ├── Detect incident trend
-        ├── Determine priority & escalation
-        ├── Assess incident risk
-        ├── Recommend incident status
-        ├── Generate executive summary
-        │
-        ▼
-DynamoDB Incident Repository
-        │
-        ├── Structured incident record
-        ├── Historical analytics
-        └── Incident metrics
-        │
-        ▼
-CloudWatch Logs
+             S3 Log Upload
+                   │
+                   ▼
+           AWS Lambda Processor
+                   │
+    ┌──────────────┼──────────────┐
+    │              │              │
+ Parse Log     Classify      Score Incident
+                   │
+                   ▼
+        Analyze Historical Data
+                   │
+                   ▼
+      Determine Trend & Priority
+                   │
+                   ▼
+    Risk • Escalation • Lifecycle
+                   │
+                   ▼
+       Executive Summary Created
+                   │
+                   ▼
+        DynamoDB Incident Store
+                   │
+                   ▼
+          CloudWatch Monitoring
