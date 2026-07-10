@@ -1,3 +1,6 @@
+## Incident Processing Workflow
+
+```text
              S3 Log Upload
                    │
                    ▼
