@@ -1,18 +1,29 @@
-# CloudOps AI Incident Assistant
-
-A serverless AWS portfolio project that ingests sample operational logs, classifies incident types, stores structured findings, and lays the foundation for AI-powered incident analysis.
-
-## Current Architecture
+## Incident Processing Workflow
 
 ```text
-S3 sample log upload
-        ↓
-S3 ObjectCreated event
-        ↓
-AWS Lambda
-        ↓
-Parse incident metadata
-        ↓
-DynamoDB incident-findings table
-        ↓
-CloudWatch logs
+             S3 Log Upload
+                   │
+                   ▼
+           AWS Lambda Processor
+                   │
+    ┌──────────────┼──────────────┐
+    │              │              │
+ Parse Log     Classify      Score Incident
+                   │
+                   ▼
+        Analyze Historical Data
+                   │
+                   ▼
+      Determine Trend & Priority
+                   │
+                   ▼
+    Risk • Escalation • Lifecycle
+                   │
+                   ▼
+       Executive Summary Created
+                   │
+                   ▼
+        DynamoDB Incident Store
+                   │
+                   ▼
+          CloudWatch Monitoring
