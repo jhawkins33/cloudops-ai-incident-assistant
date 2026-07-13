@@ -1,15 +1,127 @@
+
 import json
-import boto3
-import re
 import os
-from urllib.parse import unquote_plus
+import re
 from datetime import datetime, timezone
+from urllib.parse import unquote_plus
+
+import boto3
+
 
 s3 = boto3.client("s3")
 dynamodb = boto3.resource("dynamodb")
 
 TABLE_NAME = os.environ.get("TABLE_NAME", "incident-findings")
 table = dynamodb.Table(TABLE_NAME)
+
+
+def parse_log_fields(log_text):
+    event_id_match = re.search(r"Event ID:\s*(\d+)", log_text)
+    service_match = re.search(r"Service:\s*(.+)", log_text)
+    source_match = re.search(r"Source:\s*(.+)", log_text)
+
+    return {
+        "event_id": event_id_match.group(1) if event_id_match else "unknown",
+        "service": service_match.group(1).strip() if service_match else "unknown",
+        "source": source_match.group(1).strip() if source_match else "unknown",
+    }
+
+
+def classify_incident(log_text, detected_service):
+    log_lower = log_text.lower()
+
+    if "500.19" in log_text or "http error 500.19" in log_lower:
+        return {
+            "issue": "IIS configuration error",
+            "incident_type": "iis",
+            "incident_category": "application",
+            "severity": "error",
+            "confidence_score": "0.95",
+            "alert_required": "yes",
+            "assigned_team": "web_operations",
+            "incident_source_system": "windows_iis",
+            "incident_summary": "IIS configuration error detected",
+            "status_reason": (
+                "Awaiting investigation by web operations team"
+            ),
+            "business_impact": (
+                "Customer-facing application may be unavailable"
+            ),
+            "resolution_recommendation": (
+                "Review IIS configuration and permissions"
+            ),
+            "estimated_resolution_time": "30 minutes",
+            "incident_tags": [
+                "iis",
+                "application",
+                "web",
+                "configuration",
+                "high_priority",
+            ],
+            "recommended_action": (
+                "Verify web.config permissions, "
+                "application pool identity access, "
+                "and IIS configuration validity."
+            ),
+        }
+
+    if "terminated unexpectedly" in log_lower:
+        return {
+            "issue": "Windows service terminated unexpectedly",
+            "incident_type": "windows_service",
+            "incident_category": "infrastructure",
+            "severity": "error",
+            "confidence_score": "0.95",
+            "alert_required": "yes",
+            "assigned_team": "infrastructure_operations",
+            "incident_source_system": "windows_os",
+            "incident_summary": (
+                f"Service {detected_service} terminated unexpectedly"
+            ),
+            "status_reason": (
+                "Awaiting investigation by infrastructure operations team"
+            ),
+            "business_impact": (
+                "Infrastructure service interruption may affect "
+                "application operations"
+            ),
+            "resolution_recommendation": (
+                "Investigate service stability and restart conditions"
+            ),
+            "estimated_resolution_time": "15 minutes",
+            "incident_tags": [
+                "windows",
+                "service",
+                "infrastructure",
+                "7031",
+                "high_priority",
+            ],
+            "recommended_action": (
+                "Check service logs, recent deployments, "
+                "service account permissions, "
+                "and dependency failures."
+            ),
+        }
+
+    return {
+        "issue": "unknown",
+        "incident_type": "unknown",
+        "incident_category": "unknown",
+        "severity": "info",
+        "confidence_score": "0.20",
+        "alert_required": "no",
+        "assigned_team": "triage",
+        "incident_source_system": "unknown",
+        "incident_summary": "Unknown incident detected",
+        "status_reason": "Awaiting triage and classification",
+        "business_impact": "Business impact currently unknown",
+        "resolution_recommendation": "Manual analysis required",
+        "estimated_resolution_time": "To be determined",
+        "incident_tags": ["unknown", "triage"],
+        "recommended_action": (
+            "Review the raw log manually for further investigation."
+        ),
+    }
 
 
 def lambda_handler(event, context):
@@ -29,96 +141,47 @@ def lambda_handler(event, context):
         # Parse log fields
         # -----------------------------
 
-        event_id_match = re.search(r"Event ID:\s*(\d+)", log_text)
-        service_match = re.search(r"Service:\s*(.+)", log_text)
-        source_match = re.search(r"Source:\s*(.+)", log_text)
+        parsed_fields = parse_log_fields(log_text)
 
-        detected_event_id = event_id_match.group(1) if event_id_match else "unknown"
-        detected_service = service_match.group(1).strip() if service_match else "unknown"
-        detected_source = source_match.group(1).strip() if source_match else "unknown"
-
-        log_lower = log_text.lower()
+        detected_event_id = parsed_fields["event_id"]
+        detected_service = parsed_fields["service"]
+        detected_source = parsed_fields["source"]
 
         # -----------------------------
         # Classify incident
         # -----------------------------
 
-        if "500.19" in log_text or "http error 500.19" in log_lower:
-            detected_issue = "IIS configuration error"
-            incident_type = "iis"
-            incident_category = "application"
-            severity = "error"
-            confidence_score = "0.95"
-            alert_required = "yes"
-            assigned_team = "web_operations"
-            incident_source_system = "windows_iis"
-            incident_summary = "IIS configuration error detected"
-            status_reason = "Awaiting investigation by web operations team"
-            business_impact = "Customer-facing application may be unavailable"
-            resolution_recommendation = "Review IIS configuration and permissions"
-            estimated_resolution_time = "30 minutes"
-            incident_tags = [
-                "iis",
-                "application",
-                "web",
-                "configuration",
-                "high_priority"
-            ]
-            recommended_action = (
-                "Verify web.config permissions, "
-                "application pool identity access, "
-                "and IIS configuration validity."
-            )
+        incident = classify_incident(log_text, detected_service)
 
-        elif "terminated unexpectedly" in log_lower:
-            detected_issue = "Windows service terminated unexpectedly"
-            incident_type = "windows_service"
-            incident_category = "infrastructure"
-            severity = "error"
-            confidence_score = "0.95"
-            alert_required = "yes"
-            assigned_team = "infrastructure_operations"
-            incident_source_system = "windows_os"
-            incident_summary = f"Service {detected_service} terminated unexpectedly"
-            status_reason = "Awaiting investigation by infrastructure operations team"
-            business_impact = "Infrastructure service interruption may affect application operations"
-            resolution_recommendation = "Investigate service stability and restart conditions"
-            estimated_resolution_time = "15 minutes"
-            incident_tags = [
-                "windows",
-                "service",
-                "infrastructure",
-                "7031",
-                "high_priority"
-            ]
-            recommended_action = (
-                "Check service logs, recent deployments, "
-                "service account permissions, "
-                "and dependency failures."
-            )
-
-        else:
-            detected_issue = "unknown"
-            incident_type = "unknown"
-            incident_category = "unknown"
-            severity = "info"
-            confidence_score = "0.20"
-            alert_required = "no"
-            assigned_team = "triage"
-            incident_source_system = "unknown"
-            incident_summary = "Unknown incident detected"
-            status_reason = "Awaiting triage and classification"
-            business_impact = "Business impact currently unknown"
-            resolution_recommendation = "Manual analysis required"
-            estimated_resolution_time = "To be determined"
-            incident_tags = ["unknown", "triage"]
-            recommended_action = "Review the raw log manually for further investigation."
+        detected_issue = incident["issue"]
+        incident_type = incident["incident_type"]
+        incident_category = incident["incident_category"]
+        severity = incident["severity"]
+        confidence_score = incident["confidence_score"]
+        alert_required = incident["alert_required"]
+        assigned_team = incident["assigned_team"]
+        incident_source_system = incident["incident_source_system"]
+        incident_summary = incident["incident_summary"]
+        status_reason = incident["status_reason"]
+        business_impact = incident["business_impact"]
+        resolution_recommendation = incident[
+            "resolution_recommendation"
+        ]
+        estimated_resolution_time = incident[
+            "estimated_resolution_time"
+        ]
+        incident_tags = incident["incident_tags"]
+        recommended_action = incident["recommended_action"]
 
         # -----------------------------
         # Calculate base score
         # -----------------------------
 
-        if severity == "error" and alert_required == "yes" and float(confidence_score) >= 0.90:
+        if (
+            severity == "error"
+            and alert_required == "yes"
+            and float(confidence_score) >= 0.90
+        ):
             remediation_priority = "high"
             incident_score = 95
         elif severity == "error":
@@ -129,7 +192,6 @@ def lambda_handler(event, context):
             incident_score = 30
 
         incident_detected_at = datetime.now(timezone.utc).isoformat()
-
         incident_age_minutes = 0
 
         # -----------------------------
@@ -139,9 +201,9 @@ def lambda_handler(event, context):
         repeat_incident = "no"
         incident_occurrence = 1
 
-        response = table.scan()
+        history_response = table.scan()
 
-        for existing_item in response.get("Items", []):
+        for existing_item in history_response.get("Items", []):
             if (
                 existing_item.get("service") == detected_service
                 and existing_item.get("incident_type") == incident_type
@@ -171,6 +233,10 @@ def lambda_handler(event, context):
 
         incident_score = min(incident_score, 100)
 
+        # -----------------------------
+        # Determine escalation
+        # -----------------------------
+
         if incident_score >= 90:
             escalation_level = "critical"
         elif incident_score >= 70:
@@ -180,7 +246,10 @@ def lambda_handler(event, context):
         else:
             escalation_level = "low"
 
-        if escalation_level == "critical" or incident_trend == "chronic":
+        if (
+            escalation_level == "critical"
+            or incident_trend == "chronic"
+        ):
             requires_escalation = "yes"
         else:
             requires_escalation = "no"
@@ -207,7 +276,10 @@ def lambda_handler(event, context):
         else:
             incident_lifecycle = "Monitoring"
 
-        if incident_priority == "P1" and incident_trend == "chronic":
+        if (
+            incident_priority == "P1"
+            and incident_trend == "chronic"
+        ):
             incident_risk = "critical"
         elif incident_priority == "P1":
             incident_risk = "high"
@@ -222,10 +294,8 @@ def lambda_handler(event, context):
 
         if incident_priority == "P1":
             recommended_status = "Open"
-
         elif incident_priority == "P2":
             recommended_status = "Investigating"
-
         else:
             recommended_status = "Monitoring"
 
@@ -233,16 +303,16 @@ def lambda_handler(event, context):
         # Generate executive summary
         # -----------------------------
 
-        # -----------------------------
-        # Build and save DynamoDB item
-        # -----------------------------
-
         executive_summary = (
-            f"{incident_priority} {incident_risk.upper()} incident affecting "
-            f"{detected_service}. "
+            f"{incident_priority} {incident_risk.upper()} incident "
+            f"affecting {detected_service}. "
             f"This is occurrence #{incident_occurrence} "
             f"and is classified as {incident_trend}."
         )
+
+        # -----------------------------
+        # Build and save DynamoDB item
+        # -----------------------------
 
         item = {
             "log_id": key.replace("/", "_").replace(".txt", ""),
@@ -266,6 +336,7 @@ def lambda_handler(event, context):
             "alert_required": alert_required,
             "remediation_priority": remediation_priority,
             "status": status,
+            "recommended_status": recommended_status,
             "status_reason": status_reason,
             "incident_lifecycle": incident_lifecycle,
             "estimated_resolution_time": estimated_resolution_time,
@@ -282,7 +353,6 @@ def lambda_handler(event, context):
             "incident_source_system": incident_source_system,
             "incident_summary": incident_summary,
             "executive_summary": executive_summary,
-            "recommended_status": recommended_status, 
         }
 
         table.put_item(Item=item)
@@ -292,5 +362,8 @@ def lambda_handler(event, context):
 
     return {
         "statusCode": 200,
-        "body": json.dumps("Processed log file and saved finding")
+        "body": json.dumps(
+            "Processed log file and saved finding"
+        ),
     }
+
