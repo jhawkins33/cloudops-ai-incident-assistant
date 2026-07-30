@@ -5,3 +5,5 @@ venv/
 .aws/
 lambda/*.zip
 lambda/zip-check/
+samples/iis_*_v*.txt
+samples/windows_*_v*.txt

@@ -207,80 +207,90 @@ def determine_incident_response(incident_score, incident_trend):
 def build_incident_record(
     bucket,
     key,
-    detected_event_id,
-    detected_service,
-    detected_issue,
-    severity,
-    recommended_action,
-    resolution_recommendation,
-    confidence_score,
-    incident_score,
-    incident_priority,
-    incident_risk,
-    escalation_level,
-    requires_escalation,
-    repeat_incident,
-    incident_occurrence,
-    incident_trend,
-    alert_required,
-    remediation_priority,
+    parsed_fields,
+    incident,
+    history,
+    scoring,
+    response_logic,
+    timestamps,
     status,
-    recommended_status,
-    status_reason,
-    incident_lifecycle,
-    estimated_resolution_time,
-    business_impact,
-    incident_tags,
-    processed_at,
-    incident_detected_at,
-    incident_age_minutes,
-    log_text,
-    detected_source,
-    incident_type,
-    incident_category,
-    assigned_team,
-    incident_source_system,
-    incident_summary,
     executive_summary,
+    log_text,
 ):
     return {
         "log_id": key.replace("/", "_").replace(".txt", ""),
         "source_bucket": bucket,
         "source_key": key,
-        "event_id": detected_event_id,
-        "service": detected_service,
-        "issue": detected_issue,
-        "severity": severity,
-        "recommended_action": recommended_action,
-        "resolution_recommendation": resolution_recommendation,
-        "confidence_score": str(confidence_score),
-        "incident_score": incident_score,
-        "incident_priority": incident_priority,
-        "incident_risk": incident_risk,
-        "escalation_level": escalation_level,
-        "requires_escalation": requires_escalation,
-        "repeat_incident": repeat_incident,
-        "incident_occurrence": incident_occurrence,
-        "incident_trend": incident_trend,
-        "alert_required": alert_required,
-        "remediation_priority": remediation_priority,
+
+        # Parsed log information
+        "event_id": parsed_fields["event_id"],
+        "service": parsed_fields["service"],
+        "source": parsed_fields["source"],
+
+        # Classification information
+        "issue": incident["issue"],
+        "severity": incident["severity"],
+        "recommended_action": incident["recommended_action"],
+        "resolution_recommendation": incident[
+            "resolution_recommendation"
+        ],
+        "confidence_score": str(incident["confidence_score"]),
+        "alert_required": incident["alert_required"],
+        "status_reason": incident["status_reason"],
+        "estimated_resolution_time": incident[
+            "estimated_resolution_time"
+        ],
+        "business_impact": incident["business_impact"],
+        "incident_tags": incident["incident_tags"],
+        "incident_type": incident["incident_type"],
+        "incident_category": incident["incident_category"],
+        "assigned_team": incident["assigned_team"],
+        "incident_source_system": incident[
+            "incident_source_system"
+        ],
+        "incident_summary": incident["incident_summary"],
+
+        # Historical analysis
+        "repeat_incident": history["repeat_incident"],
+        "incident_occurrence": history["incident_occurrence"],
+        "incident_trend": history["incident_trend"],
+
+        # Scoring
+        "incident_score": scoring["incident_score"],
+        "remediation_priority": scoring[
+            "remediation_priority"
+        ],
+
+        # Response logic
+        "incident_priority": response_logic[
+            "incident_priority"
+        ],
+        "incident_risk": response_logic["incident_risk"],
+        "escalation_level": response_logic[
+            "escalation_level"
+        ],
+        "requires_escalation": response_logic[
+            "requires_escalation"
+        ],
+        "recommended_status": response_logic[
+            "recommended_status"
+        ],
+        "incident_lifecycle": response_logic[
+            "incident_lifecycle"
+        ],
+
+        # General status and timing
         "status": status,
-        "recommended_status": recommended_status,
-        "status_reason": status_reason,
-        "incident_lifecycle": incident_lifecycle,
-        "estimated_resolution_time": estimated_resolution_time,
-        "business_impact": business_impact,
-        "incident_tags": incident_tags,
-        "processed_at": processed_at,
-        "incident_detected_at": incident_detected_at,
-        "incident_age_minutes": incident_age_minutes,
+        "processed_at": timestamps["processed_at"],
+        "incident_detected_at": timestamps[
+            "incident_detected_at"
+        ],
+        "incident_age_minutes": timestamps[
+            "incident_age_minutes"
+        ],
+
+        # Original log and summary
         "log_preview": log_text[:500],
-        "source": detected_source,
-        "incident_type": incident_type,
-        "incident_category": incident_category,
-        "assigned_team": assigned_team,
-        "incident_source_system": incident_source_system,
-        "incident_summary": incident_summary,
         "executive_summary": executive_summary,
     }
 
@@ -338,11 +348,11 @@ def lambda_handler(event, context):
         # Set incident timestamps
         # -----------------------------
 
-        incident_detected_at = datetime.now(timezone.utc).isoformat()
-
-        processed_at = datetime.now(timezone.utc).isoformat()
-
-        incident_age_minutes = 0
+        timestamps = {
+            "incident_detected_at": datetime.now(timezone.utc).isoformat(),
+            "processed_at": datetime.now(timezone.utc).isoformat(),
+            "incident_age_minutes": 0,
+        }
 
         # -----------------------------
         # Analyze incident history
@@ -406,45 +416,18 @@ def lambda_handler(event, context):
         # -----------------------------
 
     item = build_incident_record(
-    bucket,
-    key,
-    detected_event_id,
-    detected_service,
-    detected_issue,
-    severity,
-    recommended_action,
-    resolution_recommendation,
-    confidence_score,
-    incident_score,
-    incident_priority,
-    incident_risk,
-    escalation_level,
-    requires_escalation,
-    repeat_incident,
-    incident_occurrence,
-    incident_trend,
-    alert_required,
-    remediation_priority,
-    status,
-    recommended_status,
-    status_reason,
-    incident_lifecycle,
-    estimated_resolution_time,
-    business_impact,
-    incident_tags,
-    processed_at,
-    incident_detected_at,
-    incident_age_minutes,
-    log_text,
-    detected_source,
-    incident_type,
-    incident_category,
-    assigned_team,
-    incident_source_system,
-    incident_summary,
-    executive_summary,
+    bucket=bucket,
+    key=key,
+    parsed_fields=parsed_fields,
+    incident=incident,
+    history=history,
+    scoring=scoring,
+    response_logic=response_logic,
+    timestamps=timestamps,
+    status=status,
+    executive_summary=executive_summary,
+    log_text=log_text,
 )
-
     table.put_item(Item=item)
 
     print("Saved finding to DynamoDB:")
