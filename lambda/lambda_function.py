@@ -5,9 +5,12 @@ from datetime import datetime, timezone
 from urllib.parse import unquote_plus
 
 import boto3
+import logging
 
 from incident_rules import INCIDENT_RULES
 
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 s3 = boto3.client("s3")
 dynamodb = boto3.resource("dynamodb")
@@ -296,14 +299,14 @@ def build_incident_record(
 
 
 def lambda_handler(event, context):
-    print("Received event:")
-    print(json.dumps(event))
+    logger.info("Received event:")
+    logger.info(json.dumps(event))
 
     for record in event.get("Records", []):
         bucket = record["s3"]["bucket"]["name"]
         key = unquote_plus(record["s3"]["object"]["key"])
 
-        print(f"Processing file: s3://{bucket}/{key}")
+        logger.info(f"Processing file: s3://{bucket}/{key}")
 
         response = s3.get_object(Bucket=bucket, Key=key)
         log_text = response["Body"].read().decode("utf-8")
@@ -314,9 +317,7 @@ def lambda_handler(event, context):
 
         parsed_fields = parse_log_fields(log_text)
 
-        detected_event_id = parsed_fields["event_id"]
         detected_service = parsed_fields["service"]
-        detected_source = parsed_fields["source"]
 
         # -----------------------------
         # Classify incident
@@ -324,25 +325,10 @@ def lambda_handler(event, context):
 
         incident = classify_incident(log_text, detected_service)
 
-        detected_issue = incident["issue"]
         incident_type = incident["incident_type"]
-        incident_category = incident["incident_category"]
         severity = incident["severity"]
         confidence_score = incident["confidence_score"]
         alert_required = incident["alert_required"]
-        assigned_team = incident["assigned_team"]
-        incident_source_system = incident["incident_source_system"]
-        incident_summary = incident["incident_summary"]
-        status_reason = incident["status_reason"]
-        business_impact = incident["business_impact"]
-        resolution_recommendation = incident[
-            "resolution_recommendation"
-        ]
-        estimated_resolution_time = incident[
-            "estimated_resolution_time"
-        ]
-        incident_tags = incident["incident_tags"]
-        recommended_action = incident["recommended_action"]
 
         # -----------------------------
         # Set incident timestamps
@@ -380,7 +366,6 @@ def lambda_handler(event, context):
         )
 
         incident_score = scoring["incident_score"]
-        remediation_priority = scoring["remediation_priority"]
 
         # -----------------------------
         # Determine incident response
@@ -391,12 +376,8 @@ def lambda_handler(event, context):
             incident_trend,
         )
 
-        escalation_level = response_logic["escalation_level"]
-        requires_escalation = response_logic["requires_escalation"]
         incident_priority = response_logic["incident_priority"]
-        incident_lifecycle = response_logic["incident_lifecycle"]
         incident_risk = response_logic["incident_risk"]
-        recommended_status = response_logic["recommended_status"]
 
         status = "new"
 
@@ -415,7 +396,7 @@ def lambda_handler(event, context):
         # Build and save DynamoDB item
         # -----------------------------
 
-    item = build_incident_record(
+        item = build_incident_record(
     bucket=bucket,
     key=key,
     parsed_fields=parsed_fields,
@@ -430,8 +411,8 @@ def lambda_handler(event, context):
 )
     table.put_item(Item=item)
 
-    print("Saved finding to DynamoDB:")
-    print(json.dumps(item, indent=2))
+    logger.info("Saved finding to DynamoDB:")
+    logger.info(json.dumps(item, indent=2))
 
     return {
         "statusCode": 200,
