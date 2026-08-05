@@ -190,6 +190,16 @@ def determine_incident_response(incident_score, incident_trend):
     else:
         incident_risk = "low"
 
+    # Determine incident health
+    if incident_trend == "chronic":
+        incident_health = "Critical"
+    elif incident_trend == "frequent":
+        incident_health = "Degraded"
+    elif incident_trend == "recurring":
+        incident_health = "Warning"
+    else:
+        incident_health = "Healthy"
+
     # Recommend incident status
     if incident_priority == "P1":
         recommended_status = "Open"
@@ -204,6 +214,7 @@ def determine_incident_response(incident_score, incident_trend):
         "incident_priority": incident_priority,
         "incident_lifecycle": incident_lifecycle,
         "incident_risk": incident_risk,
+        "incident_health": incident_health,
         "recommended_status": recommended_status,
     }
 
@@ -272,6 +283,7 @@ def build_incident_record(
         "escalation_level": response_logic[
             "escalation_level"
         ],
+        "incident_health": response_logic["incident_health"],
         "requires_escalation": response_logic[
             "requires_escalation"
         ],
@@ -350,7 +362,6 @@ def lambda_handler(event, context):
             incident_type,
         )
 
-        repeat_incident = history["repeat_incident"]
         incident_occurrence = history["incident_occurrence"]
         incident_trend = history["incident_trend"]
 
@@ -378,6 +389,7 @@ def lambda_handler(event, context):
 
         incident_priority = response_logic["incident_priority"]
         incident_risk = response_logic["incident_risk"]
+        incident_health = response_logic["incident_health"]
 
         status = "new"
 
@@ -388,8 +400,9 @@ def lambda_handler(event, context):
         executive_summary = (
             f"{incident_priority} {incident_risk.upper()} incident "
             f"affecting {detected_service}. "
-            f"This is occurrence #{incident_occurrence} "
-            f"and is classified as {incident_trend}."
+            f"This is occurrence #{incident_occurrence}, "
+            f"classified as {incident_trend}, "
+            f"with incident health rated as {incident_health}."
         )
 
         # -----------------------------
@@ -397,22 +410,23 @@ def lambda_handler(event, context):
         # -----------------------------
 
         item = build_incident_record(
-    bucket=bucket,
-    key=key,
-    parsed_fields=parsed_fields,
-    incident=incident,
-    history=history,
-    scoring=scoring,
-    response_logic=response_logic,
-    timestamps=timestamps,
-    status=status,
-    executive_summary=executive_summary,
-    log_text=log_text,
-)
-    table.put_item(Item=item)
+            bucket=bucket,
+            key=key,
+            parsed_fields=parsed_fields,
+            incident=incident,
+            history=history,
+            scoring=scoring,
+            response_logic=response_logic,
+            timestamps=timestamps,
+            status=status,
+            executive_summary=executive_summary,
+            log_text=log_text,
+        )
 
-    logger.info("Saved finding to DynamoDB:")
-    logger.info(json.dumps(item, indent=2))
+        table.put_item(Item=item)
+
+        logger.info("Saved finding to DynamoDB:")
+        logger.info(json.dumps(item, indent=2))
 
     return {
         "statusCode": 200,

@@ -48,8 +48,6 @@ foreach ($file in $expectedFiles) {
 
 Write-Host "ZIP verification passed."
 Write-Host ""
-
-Write-Host ""
 Write-Host "Package Contents:"
 Write-Host "-----------------"
 

@@ -65,5 +65,40 @@ INCIDENT_RULES = [
             "500.19",
             "high_priority"
         ]
-    }
+    },
+    {
+    "name": "SQL Server Login Failure 18456",
+    "match": [
+        "18456",
+        "login failed"
+    ],
+    "issue": "SQL Server login failure",
+    "incident_type": "sql_login_failure",
+    "severity": "error",
+    "alert_required": "yes",
+    "assigned_team": "database_operations",
+    "recommended_action": (
+        "Review the SQL Server error log, login status, authentication mode, "
+        "database access, and the failure state associated with error 18456."
+    ),
+    "resolution_recommendation": (
+        "Correct the login, authentication, or database access issue "
+        "identified by the SQL Server failure state"
+    ),
+    "confidence_score": 0.95,
+    "incident_category": "database",
+    "incident_source_system": "sql_server",
+    "incident_summary": "SQL Server login failure detected",
+    "business_impact": (
+        "Applications or users may be unable to connect to the SQL Server instance"
+    ),
+    "estimated_resolution_time": "30 minutes",
+    "incident_tags": [
+        "sql_server",
+        "database",
+        "authentication",
+        "18456",
+        "high_priority"
+    ]
+},
 ]
