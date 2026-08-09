@@ -30,6 +30,21 @@ def parse_log_fields(log_text):
         "source": source_match.group(1).strip() if source_match else "unknown",
     }
 
+def resolve_service(parsed_fields):
+    service = parsed_fields["service"]
+    source = parsed_fields["source"]
+
+    if service != "unknown":
+        return service
+
+    if source == "MSSQLSERVER":
+        return "SQL Server"
+
+    if source == "IIS":
+        return "IIS"
+
+    return "unknown"
+
 def classify_incident(log_text, detected_service):
     log_lower = log_text.lower()
 
@@ -191,14 +206,14 @@ def determine_incident_response(incident_score, incident_trend):
         incident_risk = "low"
 
     # Determine incident health
-    if incident_trend == "chronic":
-        incident_health = "Critical"
-    elif incident_trend == "frequent":
-        incident_health = "Degraded"
-    elif incident_trend == "recurring":
-        incident_health = "Warning"
-    else:
+    if incident_trend == "new":
         incident_health = "Healthy"
+    elif incident_trend == "recurring":
+        incident_health = "Watch"
+    elif incident_trend == "chronic":
+        incident_health = "Chronic"
+    else:
+        incident_health = "Unknown"
 
     # Recommend incident status
     if incident_priority == "P1":
@@ -280,10 +295,10 @@ def build_incident_record(
             "incident_priority"
         ],
         "incident_risk": response_logic["incident_risk"],
+        "incident_health": response_logic["incident_health"],
         "escalation_level": response_logic[
             "escalation_level"
         ],
-        "incident_health": response_logic["incident_health"],
         "requires_escalation": response_logic[
             "requires_escalation"
         ],
@@ -329,7 +344,8 @@ def lambda_handler(event, context):
 
         parsed_fields = parse_log_fields(log_text)
 
-        detected_service = parsed_fields["service"]
+        detected_service = resolve_service(parsed_fields)
+        parsed_fields["service"] = detected_service
 
         # -----------------------------
         # Classify incident
