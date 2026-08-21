@@ -2,56 +2,124 @@ $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 
 $lambdaDir = Join-Path $PSScriptRoot "lambda"
-$zipPath = Join-Path $lambdaDir "lambda_function.zip"
-$zipCheck = Join-Path $PSScriptRoot "zip-check"
+
+$processorZip = Join-Path $lambdaDir "lambda_function.zip"
+$workerZip    = Join-Path $lambdaDir "ai_worker.zip"
+
+$processorCheck = Join-Path $PSScriptRoot "zip-check-processor"
+$workerCheck    = Join-Path $PSScriptRoot "zip-check-worker"
 
 Write-Host "Checking Python syntax..."
+
 python -m py_compile `
     (Join-Path $lambdaDir "lambda_function.py") `
-    (Join-Path $lambdaDir "incident_rules.py")
+    (Join-Path $lambdaDir "incident_rules.py") `
+    (Join-Path $lambdaDir "ai_worker.py") `
+    (Join-Path $lambdaDir "agent.py") `
+    (Join-Path $lambdaDir "tools.py")
 
 if ($LASTEXITCODE -ne 0) {
     throw "Python syntax validation failed."
 }
 
-Write-Host "Removing old deployment package..."
-Remove-Item $zipPath -Force -ErrorAction SilentlyContinue
-Remove-Item $zipCheck -Recurse -Force -ErrorAction SilentlyContinue
+Write-Host "Removing old deployment packages..."
 
-Write-Host "Creating Lambda deployment package..."
+Remove-Item $processorZip -Force -ErrorAction SilentlyContinue
+Remove-Item $workerZip -Force -ErrorAction SilentlyContinue
+Remove-Item $processorCheck -Recurse -Force -ErrorAction SilentlyContinue
+Remove-Item $workerCheck -Recurse -Force -ErrorAction SilentlyContinue
+
+# -------------------------------------------------
+# Processor Lambda package
+# -------------------------------------------------
+
+Write-Host ""
+Write-Host "Creating processor Lambda package..."
+
 Compress-Archive `
     -Path `
         (Join-Path $lambdaDir "lambda_function.py"),
         (Join-Path $lambdaDir "incident_rules.py") `
-    -DestinationPath $zipPath `
+    -DestinationPath $processorZip `
     -Force
 
-Write-Host "Verifying ZIP contents..."
 Expand-Archive `
-    -Path $zipPath `
-    -DestinationPath $zipCheck `
+    -Path $processorZip `
+    -DestinationPath $processorCheck `
     -Force
 
-$expectedFiles = @(
+$processorExpected = @(
     "lambda_function.py",
     "incident_rules.py"
 )
 
-$actualFiles = Get-ChildItem $zipCheck -File |
+$processorActual = Get-ChildItem $processorCheck -File |
     Select-Object -ExpandProperty Name
 
-foreach ($file in $expectedFiles) {
-    if ($file -notin $actualFiles) {
-        throw "Missing expected file from ZIP: $file"
+foreach ($file in $processorExpected) {
+    if ($file -notin $processorActual) {
+        throw "Missing expected processor file from ZIP: $file"
     }
 }
 
-Write-Host "ZIP verification passed."
-Write-Host ""
-Write-Host "Package Contents:"
-Write-Host "-----------------"
+Write-Host "Processor ZIP verification passed."
 
-Get-ChildItem $zipCheck -File |
+# -------------------------------------------------
+# AI Worker Lambda package
+# -------------------------------------------------
+
+Write-Host ""
+Write-Host "Creating AI worker Lambda package..."
+
+Compress-Archive `
+    -Path `
+        (Join-Path $lambdaDir "ai_worker.py"),
+        (Join-Path $lambdaDir "agent.py"),
+        (Join-Path $lambdaDir "tools.py") `
+    -DestinationPath $workerZip `
+    -Force
+
+Expand-Archive `
+    -Path $workerZip `
+    -DestinationPath $workerCheck `
+    -Force
+
+$workerExpected = @(
+    "ai_worker.py",
+    "agent.py",
+    "tools.py"
+)
+
+$workerActual = Get-ChildItem $workerCheck -File |
+    Select-Object -ExpandProperty Name
+
+foreach ($file in $workerExpected) {
+    if ($file -notin $workerActual) {
+        throw "Missing expected worker file from ZIP: $file"
+    }
+}
+
+Write-Host "Worker ZIP verification passed."
+
+# -------------------------------------------------
+# Display package contents
+# -------------------------------------------------
+
+Write-Host ""
+Write-Host "Processor Package Contents:"
+Write-Host "---------------------------"
+
+Get-ChildItem $processorCheck -File |
+    Sort-Object Name |
+    ForEach-Object {
+        Write-Host ("  {0,-25} {1,8:N1} KB" -f $_.Name, ($_.Length / 1KB))
+    }
+
+Write-Host ""
+Write-Host "AI Worker Package Contents:"
+Write-Host "---------------------------"
+
+Get-ChildItem $workerCheck -File |
     Sort-Object Name |
     ForEach-Object {
         Write-Host ("  {0,-25} {1,8:N1} KB" -f $_.Name, ($_.Length / 1KB))
@@ -60,13 +128,16 @@ Get-ChildItem $zipCheck -File |
 Write-Host ""
 Write-Host "Cleaning up temporary files..."
 
-if (Test-Path $zipCheck) {
-    Remove-Item $zipCheck -Recurse -Force
-}
+Remove-Item $processorCheck -Recurse -Force
+Remove-Item $workerCheck -Recurse -Force
 
-$zipInfo = Get-Item $zipPath
+$processorInfo = Get-Item $processorZip
+$workerInfo    = Get-Item $workerZip
 
 Write-Host ""
 Write-Host "Build completed successfully."
-Write-Host "Package : $($zipInfo.FullName)"
-Write-Host ("ZIP Size: {0:N1} KB" -f ($zipInfo.Length / 1KB))
+Write-Host "Processor Package : $($processorInfo.FullName)"
+Write-Host ("Processor ZIP Size: {0:N1} KB" -f ($processorInfo.Length / 1KB))
+Write-Host ""
+Write-Host "Worker Package    : $($workerInfo.FullName)"
+Write-Host ("Worker ZIP Size   : {0:N1} KB" -f ($workerInfo.Length / 1KB))

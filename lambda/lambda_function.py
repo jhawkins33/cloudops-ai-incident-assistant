@@ -9,6 +9,14 @@ import logging
 
 from incident_rules import INCIDENT_RULES
 
+sns = boto3.client("sns")
+
+SNS_TOPIC_ARN = os.environ.get("SNS_TOPIC_ARN")
+
+sqs = boto3.client("sqs")
+
+AI_ANALYSIS_QUEUE_URL = os.environ.get("AI_ANALYSIS_QUEUE_URL")
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
@@ -323,6 +331,53 @@ def build_incident_record(
         "log_preview": log_text[:500],
         "executive_summary": executive_summary,
     }
+    
+def send_incident_notification(item):
+    if item["alert_required"] != "yes":
+        logger.info(
+            "Notification skipped: alert_required=%s log_id=%s",
+            item["alert_required"],
+            item["log_id"],
+        )
+        return
+
+    if not SNS_TOPIC_ARN:
+        logger.warning(
+            "Notification skipped: SNS_TOPIC_ARN is not configured"
+        )
+        return
+
+    message = (
+        f"CloudOps Incident Alert\n\n"
+        f"Incident Type: {item['incident_type']}\n"
+        f"Service: {item['service']}\n"
+        f"Priority: {item['incident_priority']}\n"
+        f"Risk: {item['incident_risk']}\n"
+        f"Health: {item['incident_health']}\n\n"
+        f"Executive Summary:\n"
+        f"{item['executive_summary']}\n\n"
+        f"Recommended Action:\n"
+        f"{item['recommended_action']}"
+    )
+
+    try:
+        response = sns.publish(
+            TopicArn=SNS_TOPIC_ARN,
+            Subject=f"CloudOps Alert - {item['incident_priority']} - {item['service']}",
+            Message=message,
+        )
+
+        logger.info(
+            "Incident notification sent: log_id=%s message_id=%s",
+            item["log_id"],
+            response.get("MessageId"),
+        )
+
+    except Exception:
+        logger.exception(
+            "Incident notification failed: log_id=%s",
+            item["log_id"],
+        )
 
 
 def lambda_handler(event, context):
@@ -439,10 +494,45 @@ def lambda_handler(event, context):
             log_text=log_text,
         )
 
+        agent_input = {
+            "event_id": item.get("event_id"),
+            "service": item.get("service"),
+            "source": item.get("source"),
+            "incident_type": item.get("incident_type"),
+            "severity": item.get("severity"),
+            "issue": item.get("issue"),
+            "recommended_action": item.get("recommended_action"),
+        }
+
+        item["agent_recommendation"] = None
+
         table.put_item(Item=item)
 
         logger.info("Saved finding to DynamoDB:")
         logger.info(json.dumps(item, indent=2))
+
+        send_incident_notification(item)
+
+        try:
+            sqs.send_message(
+                QueueUrl=AI_ANALYSIS_QUEUE_URL,
+                MessageBody=json.dumps({
+                    "log_id": item["log_id"],
+                    "agent_input": agent_input,
+                }),
+            )
+
+            logger.info(
+                "Queued incident for AI analysis: log_id=%s",
+                item["log_id"],
+            )
+
+        except Exception as exc:
+            logger.error(
+                "Failed to queue AI analysis for log_id=%s: %s",
+                item["log_id"],
+                exc,
+            )
 
     return {
         "statusCode": 200,

@@ -1,9 +1,26 @@
+# Python
 __pycache__/
 *.pyc
 .env
 venv/
 .aws/
+
+# Lambda build artifacts
 lambda/*.zip
 lambda/zip-check/
+zip-check-*/
+
+# Terraform local/generated files
+Terraform/.terraform/
+Terraform/*.tfstate
+Terraform/*.tfstate.*
+Terraform/crash.log
+Terraform/crash.*.log
+
+# Generated/test samples
 samples/iis_*_v*.txt
 samples/windows_*_v*.txt
+samples/sql_login_*_v*.txt
+
+# Local learning/scratch files
+python_practice.py
